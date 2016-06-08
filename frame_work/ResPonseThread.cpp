@@ -1,9 +1,11 @@
 #include "ResPonseThread.h"
-//#include "cocos2d.h"
 #include "SocketThread.h"
-#include "BaseResponseMsg.h"
-ResPonseThread* ResPonseThread::m_pInstance=new ResPonseThread; 
-ResPonseThread* ResPonseThread::GetInstance(){	
+
+
+
+
+ResPonseThread* ResPonseThread::m_pInstance = new ResPonseThread;
+ResPonseThread* ResPonseThread::GetInstance(){
 	return m_pInstance;
 }
 ResPonseThread::ResPonseThread(void)
@@ -12,11 +14,17 @@ ResPonseThread::ResPonseThread(void)
 	//this->m_msglistener=NULL;
 
 	started = detached = false;
+	Reset();
 }
 
+void ResPonseThread::Reset(){
+	readBuffer.Allocate(CLIENTSOCKET_RECVBUF_SIZE);
+	m_nRemaining = m_Opcode = 0;
+}
 
 ResPonseThread::~ResPonseThread(void)
 {
+	readBuffer.Reset();
 	stop();
 }
 int ResPonseThread::start(void * param){    	
@@ -37,57 +45,90 @@ int ResPonseThread::start(void * param){
 	return errCode;
 } 
 
+
+bool ResPonseThread::PopPacket(INetPacket*& packet){
+	if (m_msgQueue.Dequeue(packet, 1000) == 0){
+		return true;
+	}
+	return false;
+}
+
+void ResPonseThread::OnRead(){
+
+	while (true)
+	{
+		if (m_nRemaining == 0)
+		{
+			if (GetReadBuffer().GetSize() < PACKET_HEADER_SIZE)
+			{
+				return;
+			}
+
+			NetPacketHeader Header;
+			GetReadBuffer().Read(reinterpret_cast<uint8*>(&Header), PACKET_HEADER_SIZE);
+
+			Header.size = _BITSWAP16(Header.size);
+			Header.cmd = _BITSWAP16(Header.cmd);
+
+			assert(Header.size >= PACKET_HEADER_SIZE);
+			m_nRemaining = Header.size - PACKET_HEADER_SIZE;
+			m_Opcode = Header.cmd;
+
+
+		}
+
+		if (m_nRemaining > 0)
+		{
+			if (GetReadBuffer().GetSize() < m_nRemaining)
+			{
+				return;
+			}
+		}
+
+		CircularBuffer *currentBuffer = &readBuffer;
+		//printf("read code = %d\n", m_Opcode);
+		NetPacket *Packet = PACKET_NEW NetPacket(static_cast<uint16>(m_Opcode));
+		if (m_nRemaining > 0)
+		{
+			currentBuffer->Read(reinterpret_cast<uint8*>(Packet->GetWriteBuffer(m_nRemaining)), m_nRemaining);
+		}
+
+		m_nRemaining = m_Opcode = 0;
+		m_msgQueue.Enqueue(Packet);
+	}
+}
+
 void* ResPonseThread::threadFunc(void *arg){
 	ResPonseThread* thred=(ResPonseThread*)arg;	
 	ODSocket csocket=SocketThread::GetInstance()->getSocket();
 	if(SocketThread::GetInstance()->state==0){
 		while(true){
 			// 表示服务器端 有消息推送过来
-			if(csocket.Select()==-2){				
-				char recvBuf[8];// 获取请求头的 数据
-				int i=	csocket.Recv(recvBuf,8,0);				
-				if (i==8){				
-					char dc1[2]={recvBuf[1],recvBuf[0]};
-					short len = *(short*)&dc1[0];
-					char dc2[2]={recvBuf[3],recvBuf[2]};
-					short code = *(short*)&dc2[0];
-					char dc3[4]={recvBuf[7],recvBuf[6],recvBuf[5],recvBuf[4]};
-					int playId=*(int*)&dc3[0];
-					//CCLOG("%d",playId);
-					char* messbody=NULL;
-					int myl=0;
-					if(len>8){							
-						myl=len-8;
-						messbody=new char[myl];						
-						csocket.Recv(messbody,myl,0);					  
-					}
-					//	//1001 = com.lx.command.player.LoginCmd
-					//1002 = com.lx.command.player.RegisterCmd
-					//1003 = com.lx.command.player.HeartBeatCmd
-					// 登陆
+			if(csocket.Select()==-2){			
 
-					BaseResponseMsg* basmsg=new BaseResponseMsg();
-					basmsg->code=code;
-					basmsg->len=len;
-					basmsg->playerId=playId;
-					// 表示服务器推动过来的消息
-					if(code==1000){
-						//if(thred->m_msglistener){
-						//basmsg->setStringToMsg(messbody,myl);
-						//(thred->m_msglistener->*(thred->msgselector))(basmsg);
-						//}
-					}
-					else {
-						//CCLOG("%d",code);
-					}
-				}else {
-					//if(thred->m_notconlistener){
-					// BaseResponseMsg* basmsg=new BaseResponseMsg();
-					// basmsg->state=1;// 连接断开
-					//(thred->m_notconlistener->*(thred->notconselector))(basmsg);
+				uint32 nLen = (uint32)thred->GetReadBuffer().GetSpace();
+				char* pBuff = (char*)thred->GetReadBuffer().GetBuffer();
+
+				int nRecv = csocket.Recv(pBuff, nLen, 0);
+				if (nRecv == SOCKET_ERROR)
+				{
+					//uint32 err = SocketOps::GetErrorNumber();
+					//if (err != ERROR_WOULDBLOCK)
+					//{
+					//	OnDisconnect(err);
+					//	return false;
 					//}
-					break;
 				}
+				else if (nRecv == 0)
+				{
+					////DLOG("shutdown...");
+					//OnDisconnect(0);
+					//return false;
+				}
+
+
+				thred->GetReadBuffer().IncrementWritten(nRecv);
+				thred->OnRead();
 
 			}
 		}

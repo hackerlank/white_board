@@ -1,10 +1,9 @@
 #include "SocketThread.h"
-
 #include "ResPonseThread.h"
 
 #pragma comment(lib, "pthreadVC2.lib")
 
-//USING_NS_CC;
+
 int SocketThread::start(){    	
 	int errCode = 0;
 	do{
@@ -12,7 +11,6 @@ int SocketThread::start(){
 		errCode = pthread_attr_init(&tAttr);
 		
 		//CC_BREAK_IF(errCode!=0);
-		//但是上面这个函数其他内容则主要为你创建的线程设定为分离式
 		errCode = pthread_attr_setdetachstate(&tAttr, PTHREAD_CREATE_DETACHED);
 		if (errCode!=0) {
 			pthread_attr_destroy(&tAttr);
@@ -29,11 +27,10 @@ void* SocketThread::start_thread(void *arg)   {
 	ODSocket cdSocket;
 	cdSocket.Init();	
 	bool isok=cdSocket.Create(AF_INET,SOCK_STREAM,0);	
-	bool iscon=cdSocket.Connect("127.0.0.1",8888);
+	bool iscon=cdSocket.Connect("127.0.0.1",1234);
 	if(iscon){
 		thred->state=0;
 		ResPonseThread::GetInstance()->start();// 启动响应参数
-		//CCLOG("conection");
 	}else{
 		thred->state=1;
 	}	

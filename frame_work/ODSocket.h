@@ -10,7 +10,7 @@
 #define _ODSOCKET_H_
 
 
-#include <winsock2.h>
+#include <BaseDef.h>
 typedef int				socklen_t;
 
 

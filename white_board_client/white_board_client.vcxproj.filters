@@ -21,16 +21,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\frame_work\BaseResponseMsg.cpp">
-      <Filter>frame_work</Filter>
-    </ClCompile>
-    <ClCompile Include="..\frame_work\ConvertEndianUtil.cpp">
-      <Filter>frame_work</Filter>
-    </ClCompile>
     <ClCompile Include="..\frame_work\ODSocket.cpp">
-      <Filter>frame_work</Filter>
-    </ClCompile>
-    <ClCompile Include="..\frame_work\ResPonseThread.cpp">
       <Filter>frame_work</Filter>
     </ClCompile>
     <ClCompile Include="..\frame_work\SocketThread.cpp">
@@ -39,24 +30,54 @@
     <ClCompile Include="..\main\run.cpp">
       <Filter>main</Filter>
     </ClCompile>
+    <ClCompile Include="..\frame_work\CircularBuffer.cpp">
+      <Filter>frame_work</Filter>
+    </ClCompile>
+    <ClCompile Include="..\frame_work\Buffer.cpp">
+      <Filter>frame_work</Filter>
+    </ClCompile>
+    <ClCompile Include="..\frame_work\NetPacket.cpp">
+      <Filter>frame_work</Filter>
+    </ClCompile>
+    <ClCompile Include="..\frame_work\Mutex.cpp">
+      <Filter>frame_work</Filter>
+    </ClCompile>
+    <ClCompile Include="..\frame_work\ResPonseThread.cpp">
+      <Filter>frame_work</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\frame_work\BaseRequestMsg.h">
-      <Filter>frame_work</Filter>
-    </ClInclude>
-    <ClInclude Include="..\frame_work\BaseResponseMsg.h">
-      <Filter>frame_work</Filter>
-    </ClInclude>
-    <ClInclude Include="..\frame_work\ConvertEndianUtil.h">
-      <Filter>frame_work</Filter>
-    </ClInclude>
     <ClInclude Include="..\frame_work\ODSocket.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\SocketThread.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\CircularBuffer.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\BaseDef.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\Buffer.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\ByteBuffer.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\NetPacket.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\Atomic.h">
+      <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\frame_work\Mutex.h">
       <Filter>frame_work</Filter>
     </ClInclude>
     <ClInclude Include="..\frame_work\ResPonseThread.h">
       <Filter>frame_work</Filter>
     </ClInclude>
-    <ClInclude Include="..\frame_work\SocketThread.h">
+    <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h">
       <Filter>frame_work</Filter>
     </ClInclude>
   </ItemGroup>

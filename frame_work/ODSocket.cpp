@@ -2,8 +2,8 @@
 #include "ODSocket.h"
 
 
-#pragma comment(lib, "wsock32")
-
+//#pragma comment(lib, "wsock32")
+#pragma comment (lib, "Ws2_32.lib")
 
 
 ODSocket::ODSocket(SOCKET sock) {
@@ -30,7 +30,7 @@ int ODSocket::Init() {
 	 */
 	WSADATA wsaData;
 	//#define MAKEWORD(a,b) ((WORD) (((BYTE) (a)) | ((WORD) ((BYTE) (b))) << 8))
-	WORD version = MAKEWORD(2, 0);
+	WORD version = MAKEWORD(2, 2);
 	int ret = WSAStartup(version, &wsaData); //win sock start up
 	if (ret) {
 //		cerr << "Initilize winsock error !" << endl;
@@ -125,7 +125,7 @@ int ODSocket::Select(){
 	struct timeval mytimeout;
 	mytimeout.tv_sec=3;
 	mytimeout.tv_usec=0;
-	int result= select(m_sock,&fdR,NULL,NULL,NULL);
+	int result = select(m_sock + 1, &fdR, NULL, NULL, NULL);
 	// 第一个参数是 0 和 sockfd 中的最大值加一
 	// 第二个参数是 读集, 也就是 sockset
 	// 第三, 四个参数是写集和异常集, 在本程序中都为空

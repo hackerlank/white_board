@@ -39,8 +39,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>D:\workspace\WhiteBoard\white_board_client\frame_work;D:\workspace\WhiteBoard\white_board_client\third_part\include;$(IncludePath)</IncludePath>
-    <LibraryPath>D:\workspace\WhiteBoard\white_board_client\third_part\lib;$(LibraryPath)</LibraryPath>
+    <IncludePath>..\frame_work;..\third_part\include;$(IncludePath)</IncludePath>
+    <LibraryPath>..\third_part\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -68,20 +68,27 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\frame_work\BaseResponseMsg.cpp" />
-    <ClCompile Include="..\frame_work\ConvertEndianUtil.cpp" />
+    <ClCompile Include="..\frame_work\Buffer.cpp" />
+    <ClCompile Include="..\frame_work\CircularBuffer.cpp" />
+    <ClCompile Include="..\frame_work\Mutex.cpp" />
+    <ClCompile Include="..\frame_work\NetPacket.cpp" />
     <ClCompile Include="..\frame_work\ODSocket.cpp" />
     <ClCompile Include="..\frame_work\ResPonseThread.cpp" />
     <ClCompile Include="..\frame_work\SocketThread.cpp" />
     <ClCompile Include="..\main\run.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\frame_work\BaseRequestMsg.h" />
-    <ClInclude Include="..\frame_work\BaseResponseMsg.h" />
-    <ClInclude Include="..\frame_work\ConvertEndianUtil.h" />
+    <ClInclude Include="..\frame_work\Atomic.h" />
+    <ClInclude Include="..\frame_work\BaseDef.h" />
+    <ClInclude Include="..\frame_work\Buffer.h" />
+    <ClInclude Include="..\frame_work\ByteBuffer.h" />
+    <ClInclude Include="..\frame_work\CircularBuffer.h" />
+    <ClInclude Include="..\frame_work\Mutex.h" />
+    <ClInclude Include="..\frame_work\NetPacket.h" />
     <ClInclude Include="..\frame_work\ODSocket.h" />
     <ClInclude Include="..\frame_work\ResPonseThread.h" />
     <ClInclude Include="..\frame_work\SocketThread.h" />
+    <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

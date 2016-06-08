@@ -1,6 +1,7 @@
 #pragma once
 #include "ODSocket.h"
-#include "pthread.h"
+#include "BaseDef.h"
+
 class SocketThread
 {
 public:	
@@ -14,7 +15,7 @@ public:
 	pthread_t getThreadId();
 private:
 	pthread_t pid;	
-	static void* start_thread(void *);//静态成员函数,相当于C中的全局函数 	
+	static void* start_thread(void *); 	
 	SocketThread(void);
 private:
 	static SocketThread* m_pInstance;	
