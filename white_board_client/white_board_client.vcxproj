@@ -39,7 +39,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <IncludePath>..\frame_work;..\third_part\include;$(IncludePath)</IncludePath>
+    <IncludePath>..\frame_work;..\third_part\include;..\proto_cpp;..\client;$(IncludePath)</IncludePath>
     <LibraryPath>..\third_part\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -50,7 +50,7 @@
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>pthreadVC2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -68,6 +68,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\client\PacketHandle.cpp" />
     <ClCompile Include="..\frame_work\Buffer.cpp" />
     <ClCompile Include="..\frame_work\CircularBuffer.cpp" />
     <ClCompile Include="..\frame_work\Mutex.cpp" />
@@ -76,8 +77,11 @@
     <ClCompile Include="..\frame_work\ResPonseThread.cpp" />
     <ClCompile Include="..\frame_work\SocketThread.cpp" />
     <ClCompile Include="..\main\run.cpp" />
+    <ClCompile Include="..\proto_cpp\Login.pb.cc" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\client\OpCode.h" />
+    <ClInclude Include="..\client\PacketHandler.h" />
     <ClInclude Include="..\frame_work\Atomic.h" />
     <ClInclude Include="..\frame_work\BaseDef.h" />
     <ClInclude Include="..\frame_work\Buffer.h" />
@@ -89,6 +93,7 @@
     <ClInclude Include="..\frame_work\ResPonseThread.h" />
     <ClInclude Include="..\frame_work\SocketThread.h" />
     <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h" />
+    <ClInclude Include="..\proto_cpp\Login.pb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

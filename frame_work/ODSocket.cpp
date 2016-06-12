@@ -1,9 +1,9 @@
 #include <stdio.h>
 #include "ODSocket.h"
-
+#include "NetPacket.h"
 
 //#pragma comment(lib, "wsock32")
-#pragma comment (lib, "Ws2_32.lib")
+
 
 
 ODSocket::ODSocket(SOCKET sock) {
@@ -162,6 +162,25 @@ int ODSocket::Send(const char* buf, int len, int flags) {
 	}
 
 	return count;
+}
+
+int ODSocket::Send(INetPacket* packet){
+	
+
+	size_t size = packet->GetRemainSize();
+	size_t all_size = size + PACKET_HEADER_SIZE;
+	char* buff = new char[all_size];
+
+
+	NetPacketHeader Header;
+	Header.size = _BITSWAP16((uint16)all_size);
+	Header.cmd = _BITSWAP16(packet->GetOpcode());
+	memcpy(buff, &Header, PACKET_HEADER_SIZE);
+	memcpy(buff + PACKET_HEADER_SIZE, packet->GetReadBuffer(), size);
+	int count = Send(buff, all_size, 0);
+	delete buff;
+	return count;
+
 }
 
 int ODSocket::Recv(char* buf, int len, int flags) {

@@ -54,3 +54,11 @@ typedef unsigned __int8 uint8;
 #define _BITSWAP32(x) (x)
 #define _BITSWAP64(x) (x)
 #endif
+
+
+enum ErrorCode
+{
+	ECommonSuccess=0,  //成功
+	ECommonError,//失败
+	EErrorNoHandlerFun,//没有对应的处理函数
+};

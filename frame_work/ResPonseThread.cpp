@@ -11,8 +11,6 @@ ResPonseThread* ResPonseThread::GetInstance(){
 ResPonseThread::ResPonseThread(void)
 {
 
-	//this->m_msglistener=NULL;
-
 	started = detached = false;
 	Reset();
 }

@@ -55,9 +55,6 @@ class ThreadSafeBlockQueue
                     // Use literal ETIMEDOUT, to avoid include conflict.
 					if (rc == 10060 /* ETIMEDOUT in pthread.h */ 
                         || rc == 138 /* ETIMEDOUT in errorno.h */
-#ifdef IOS
-                        || ETIMEDOUT == rc
-#endif
                         )
 					{
 						_mutex.Unlock();

@@ -49,8 +49,10 @@
 #include <ctype.h>
 
 #include <google/protobuf/stubs/hash.h>
+#include <memory>
 
 #include <google/protobuf/stubs/common.h>
+#include <google/protobuf/stubs/stringprintf.h>
 #include <google/protobuf/compiler/importer.h>
 #include <google/protobuf/compiler/code_generator.h>
 #include <google/protobuf/compiler/plugin.pb.h>
@@ -59,12 +61,13 @@
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/text_format.h>
 #include <google/protobuf/dynamic_message.h>
+#include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
 #include <google/protobuf/io/printer.h>
 #include <google/protobuf/stubs/strutil.h>
 #include <google/protobuf/stubs/substitute.h>
-#include <google/protobuf/stubs/map-util.h>
-#include <google/protobuf/stubs/stl_util-inl.h>
+#include <google/protobuf/stubs/map_util.h>
+#include <google/protobuf/stubs/stl_util.h>
 
 
 namespace google {
@@ -145,7 +148,7 @@ void AddTrailingSlash(string* path) {
 bool VerifyDirectoryExists(const string& path) {
   if (path.empty()) return true;
 
-  if (access(path.c_str(), W_OK) == -1) {
+  if (access(path.c_str(), F_OK) == -1) {
     cerr << path << ": " << strerror(errno) << endl;
     return false;
   } else {
@@ -159,8 +162,7 @@ bool VerifyDirectoryExists(const string& path) {
 // directories listed in |filename|.
 bool TryCreateParentDirectory(const string& prefix, const string& filename) {
   // Recursively create parent directories to the output file.
-  vector<string> parts;
-  SplitStringUsing(filename, "/", &parts);
+  vector<string> parts = Split(filename, "/", true);
   string path_so_far = prefix;
   for (int i = 0; i < parts.size() - 1; i++) {
     path_so_far += parts[i];
@@ -251,6 +253,7 @@ class CommandLineInterface::GeneratorContextImpl : public GeneratorContext {
 
   // implements GeneratorContext --------------------------------------
   io::ZeroCopyOutputStream* Open(const string& filename);
+  io::ZeroCopyOutputStream* OpenForAppend(const string& filename);
   io::ZeroCopyOutputStream* OpenForInsert(
       const string& filename, const string& insertion_point);
   void ListParsedFiles(vector<const FileDescriptor*>* output) {
@@ -270,7 +273,8 @@ class CommandLineInterface::GeneratorContextImpl : public GeneratorContext {
 class CommandLineInterface::MemoryOutputStream
     : public io::ZeroCopyOutputStream {
  public:
-  MemoryOutputStream(GeneratorContextImpl* directory, const string& filename);
+  MemoryOutputStream(GeneratorContextImpl* directory, const string& filename,
+                     bool append_mode);
   MemoryOutputStream(GeneratorContextImpl* directory, const string& filename,
                      const string& insertion_point);
   virtual ~MemoryOutputStream();
@@ -288,6 +292,9 @@ class CommandLineInterface::MemoryOutputStream
 
   // The string we're building.
   string data_;
+
+  // Whether we should append the output stream to the existing file.
+  bool append_mode_;
 
   // StringOutputStream writing to data_.
   scoped_ptr<io::StringOutputStream> inner_;
@@ -433,7 +440,13 @@ void CommandLineInterface::GeneratorContextImpl::AddJarManifest() {
 
 io::ZeroCopyOutputStream* CommandLineInterface::GeneratorContextImpl::Open(
     const string& filename) {
-  return new MemoryOutputStream(this, filename);
+  return new MemoryOutputStream(this, filename, false);
+}
+
+io::ZeroCopyOutputStream*
+CommandLineInterface::GeneratorContextImpl::OpenForAppend(
+    const string& filename) {
+  return new MemoryOutputStream(this, filename, true);
 }
 
 io::ZeroCopyOutputStream*
@@ -445,9 +458,10 @@ CommandLineInterface::GeneratorContextImpl::OpenForInsert(
 // -------------------------------------------------------------------
 
 CommandLineInterface::MemoryOutputStream::MemoryOutputStream(
-    GeneratorContextImpl* directory, const string& filename)
+    GeneratorContextImpl* directory, const string& filename, bool append_mode)
     : directory_(directory),
       filename_(filename),
+      append_mode_(append_mode),
       inner_(new io::StringOutputStream(&data_)) {
 }
 
@@ -470,8 +484,12 @@ CommandLineInterface::MemoryOutputStream::~MemoryOutputStream() {
   if (insertion_point_.empty()) {
     // This was just a regular Open().
     if (*map_slot != NULL) {
-      cerr << filename_ << ": Tried to write the same file twice." << endl;
-      directory_->had_error_ = true;
+      if (append_mode_) {
+        (*map_slot)->append(data_);
+      } else {
+        cerr << filename_ << ": Tried to write the same file twice." << endl;
+        directory_->had_error_ = true;
+      }
       return;
     }
 
@@ -564,8 +582,10 @@ CommandLineInterface::MemoryOutputStream::~MemoryOutputStream() {
 
 CommandLineInterface::CommandLineInterface()
   : mode_(MODE_COMPILE),
+    print_mode_(PRINT_NONE),
     error_format_(ERROR_FORMAT_GCC),
     imports_in_descriptor_set_(false),
+    source_info_in_descriptor_set_(false),
     disallow_services_(false),
     inputs_are_proto_path_relative_(false) {}
 CommandLineInterface::~CommandLineInterface() {}
@@ -574,9 +594,23 @@ void CommandLineInterface::RegisterGenerator(const string& flag_name,
                                              CodeGenerator* generator,
                                              const string& help_text) {
   GeneratorInfo info;
+  info.flag_name = flag_name;
   info.generator = generator;
   info.help_text = help_text;
-  generators_[flag_name] = info;
+  generators_by_flag_name_[flag_name] = info;
+}
+
+void CommandLineInterface::RegisterGenerator(const string& flag_name,
+                                             const string& option_flag_name,
+                                             CodeGenerator* generator,
+                                             const string& help_text) {
+  GeneratorInfo info;
+  info.flag_name = flag_name;
+  info.option_flag_name = option_flag_name;
+  info.generator = generator;
+  info.help_text = help_text;
+  generators_by_flag_name_[flag_name] = info;
+  generators_by_option_name_[option_flag_name] = info;
 }
 
 void CommandLineInterface::AllowPlugins(const string& exe_name_prefix) {
@@ -585,7 +619,14 @@ void CommandLineInterface::AllowPlugins(const string& exe_name_prefix) {
 
 int CommandLineInterface::Run(int argc, const char* const argv[]) {
   Clear();
-  if (!ParseArguments(argc, argv)) return 1;
+  switch (ParseArguments(argc, argv)) {
+    case PARSE_ARGUMENT_DONE_AND_EXIT:
+      return 0;
+    case PARSE_ARGUMENT_FAIL:
+      return 1;
+    case PARSE_ARGUMENT_DONE_AND_CONTINUE:
+      break;
+  }
 
   // Set up the source tree.
   DiskSourceTree source_tree;
@@ -609,7 +650,9 @@ int CommandLineInterface::Run(int argc, const char* const argv[]) {
   // Parse each file.
   for (int i = 0; i < input_files_.size(); i++) {
     // Import the file.
+    importer.AddUnusedImportTrackFile(input_files_[i]);
     const FileDescriptor* parsed_file = importer.Import(input_files_[i]);
+    importer.ClearUnusedImportTrackFiles();
     if (parsed_file == NULL) return 1;
     parsed_files.push_back(parsed_file);
 
@@ -698,6 +741,25 @@ int CommandLineInterface::Run(int argc, const char* const argv[]) {
     }
   }
 
+  if (mode_ == MODE_PRINT) {
+    switch (print_mode_) {
+      case PRINT_FREE_FIELDS:
+        for (int i = 0; i < parsed_files.size(); ++i) {
+          const FileDescriptor* fd = parsed_files[i];
+          for (int j = 0; j < fd->message_type_count(); ++j) {
+            PrintFreeFieldNumbers(fd->message_type(j));
+          }
+        }
+        break;
+      case PRINT_NONE:
+        GOOGLE_LOG(ERROR) << "If the code reaches here, it usually means a bug of "
+                     "flag parsing in the CommonadLineInterface.";
+        return 1;
+
+      // Do not add a default case.
+    }
+  }
+
   return 0;
 }
 
@@ -712,7 +774,9 @@ void CommandLineInterface::Clear() {
   descriptor_set_name_.clear();
 
   mode_ = MODE_COMPILE;
+  print_mode_ = PRINT_NONE;
   imports_in_descriptor_set_ = false;
+  source_info_in_descriptor_set_ = false;
   disallow_services_ = false;
 }
 
@@ -755,7 +819,8 @@ bool CommandLineInterface::MakeInputsBeProtoPathRelative(
   return true;
 }
 
-bool CommandLineInterface::ParseArguments(int argc, const char* const argv[]) {
+CommandLineInterface::ParseArgumentStatus
+CommandLineInterface::ParseArguments(int argc, const char* const argv[]) {
   executable_name_ = argv[0];
 
   // Iterate through all arguments and parse them.
@@ -769,41 +834,50 @@ bool CommandLineInterface::ParseArguments(int argc, const char* const argv[]) {
         if (name == "--decode") {
           cerr << "To decode an unknown message, use --decode_raw." << endl;
         }
-        return false;
+        return PARSE_ARGUMENT_FAIL;
       } else {
         ++i;
         value = argv[i];
       }
     }
 
-    if (!InterpretArgument(name, value)) return false;
+    ParseArgumentStatus status = InterpretArgument(name, value);
+    if (status != PARSE_ARGUMENT_DONE_AND_CONTINUE)
+      return status;
   }
 
   // If no --proto_path was given, use the current working directory.
   if (proto_path_.empty()) {
-    proto_path_.push_back(make_pair<string, string>("", "."));
+    // Don't use make_pair as the old/default standard library on Solaris
+    // doesn't support it without explicit template parameters, which are
+    // incompatible with C++0x's make_pair.
+    proto_path_.push_back(pair<string, string>("", "."));
   }
 
   // Check some errror cases.
   bool decoding_raw = (mode_ == MODE_DECODE) && codec_type_.empty();
   if (decoding_raw && !input_files_.empty()) {
     cerr << "When using --decode_raw, no input files should be given." << endl;
-    return false;
+    return PARSE_ARGUMENT_FAIL;
   } else if (!decoding_raw && input_files_.empty()) {
     cerr << "Missing input file." << endl;
-    return false;
+    return PARSE_ARGUMENT_FAIL;
   }
   if (mode_ == MODE_COMPILE && output_directives_.empty() &&
       descriptor_set_name_.empty()) {
     cerr << "Missing output directives." << endl;
-    return false;
+    return PARSE_ARGUMENT_FAIL;
   }
   if (imports_in_descriptor_set_ && descriptor_set_name_.empty()) {
     cerr << "--include_imports only makes sense when combined with "
             "--descriptor_set_out." << endl;
   }
+  if (source_info_in_descriptor_set_ && descriptor_set_name_.empty()) {
+    cerr << "--include_source_info only makes sense when combined with "
+            "--descriptor_set_out." << endl;
+  }
 
-  return true;
+  return PARSE_ARGUMENT_DONE_AND_CONTINUE;
 }
 
 bool CommandLineInterface::ParseArgument(const char* arg,
@@ -853,8 +927,10 @@ bool CommandLineInterface::ParseArgument(const char* arg,
   if (*name == "-h" || *name == "--help" ||
       *name == "--disallow_services" ||
       *name == "--include_imports" ||
+      *name == "--include_source_info" ||
       *name == "--version" ||
-      *name == "--decode_raw") {
+      *name == "--decode_raw" ||
+      *name == "--print_free_field_numbers") {
     // HACK:  These are the only flags that don't take a value.
     //   They probably should not be hard-coded like this but for now it's
     //   not worth doing better.
@@ -865,8 +941,9 @@ bool CommandLineInterface::ParseArgument(const char* arg,
   return true;
 }
 
-bool CommandLineInterface::InterpretArgument(const string& name,
-                                             const string& value) {
+CommandLineInterface::ParseArgumentStatus
+CommandLineInterface::InterpretArgument(const string& name,
+                                        const string& value) {
   if (name.empty()) {
     // Not a flag.  Just a filename.
     if (value.empty()) {
@@ -874,7 +951,7 @@ bool CommandLineInterface::InterpretArgument(const string& name,
               "arguments to " << executable_name_ << ".  This is actually "
               "sort of hard to do.  Congrats.  Unfortunately it is not valid "
               "input so the program is going to die now." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
 
     input_files_.push_back(value);
@@ -883,14 +960,14 @@ bool CommandLineInterface::InterpretArgument(const string& name,
     // Java's -classpath (and some other languages) delimits path components
     // with colons.  Let's accept that syntax too just to make things more
     // intuitive.
-    vector<string> parts;
-    SplitStringUsing(value, kPathSeparator, &parts);
+    vector<string> parts = Split(
+        value, kPathSeparator, true);
 
     for (int i = 0; i < parts.size(); i++) {
       string virtual_path;
       string disk_path;
 
-      int equals_pos = parts[i].find_first_of('=');
+      string::size_type equals_pos = parts[i].find_first_of('=');
       if (equals_pos == string::npos) {
         virtual_path = "";
         disk_path = parts[i];
@@ -902,7 +979,7 @@ bool CommandLineInterface::InterpretArgument(const string& name,
       if (disk_path.empty()) {
         cerr << "--proto_path passed empty directory name.  (Use \".\" for "
                 "current directory.)" << endl;
-        return false;
+        return PARSE_ARGUMENT_FAIL;
       }
 
       // Make sure disk path exists, warn otherwise.
@@ -910,35 +987,45 @@ bool CommandLineInterface::InterpretArgument(const string& name,
         cerr << disk_path << ": warning: directory does not exist." << endl;
       }
 
-      proto_path_.push_back(make_pair<string, string>(virtual_path, disk_path));
+      // Don't use make_pair as the old/default standard library on Solaris
+      // doesn't support it without explicit template parameters, which are
+      // incompatible with C++0x's make_pair.
+      proto_path_.push_back(pair<string, string>(virtual_path, disk_path));
     }
 
   } else if (name == "-o" || name == "--descriptor_set_out") {
     if (!descriptor_set_name_.empty()) {
       cerr << name << " may only be passed once." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
     if (value.empty()) {
       cerr << name << " requires a non-empty value." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
     if (mode_ != MODE_COMPILE) {
       cerr << "Cannot use --encode or --decode and generate descriptors at the "
               "same time." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
     descriptor_set_name_ = value;
 
   } else if (name == "--include_imports") {
     if (imports_in_descriptor_set_) {
       cerr << name << " may only be passed once." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
     imports_in_descriptor_set_ = true;
 
+  } else if (name == "--include_source_info") {
+    if (source_info_in_descriptor_set_) {
+      cerr << name << " may only be passed once." << endl;
+      return PARSE_ARGUMENT_FAIL;
+    }
+    source_info_in_descriptor_set_ = true;
+
   } else if (name == "-h" || name == "--help") {
     PrintHelpText();
-    return false;  // Exit without running compiler.
+    return PARSE_ARGUMENT_DONE_AND_EXIT;  // Exit without running compiler.
 
   } else if (name == "--version") {
     if (!version_info_.empty()) {
@@ -947,7 +1034,7 @@ bool CommandLineInterface::InterpretArgument(const string& name,
     cout << "libprotoc "
          << protobuf::internal::VersionString(GOOGLE_PROTOBUF_VERSION)
          << endl;
-    return false;  // Exit without running compiler.
+    return PARSE_ARGUMENT_DONE_AND_EXIT;  // Exit without running compiler.
 
   } else if (name == "--disallow_services") {
     disallow_services_ = true;
@@ -956,12 +1043,12 @@ bool CommandLineInterface::InterpretArgument(const string& name,
              name == "--decode_raw") {
     if (mode_ != MODE_COMPILE) {
       cerr << "Only one of --encode and --decode can be specified." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
     if (!output_directives_.empty() || !descriptor_set_name_.empty()) {
       cerr << "Cannot use " << name
            << " and generate code or descriptors at the same time." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
 
     mode_ = (name == "--encode") ? MODE_ENCODE : MODE_DECODE;
@@ -971,10 +1058,10 @@ bool CommandLineInterface::InterpretArgument(const string& name,
       if (name == "--decode") {
         cerr << "To decode an unknown message, use --decode_raw." << endl;
       }
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     } else if (!value.empty() && name == "--decode_raw") {
       cerr << "--decode_raw does not take a parameter." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
 
     codec_type_ = value;
@@ -986,16 +1073,16 @@ bool CommandLineInterface::InterpretArgument(const string& name,
       error_format_ = ERROR_FORMAT_MSVS;
     } else {
       cerr << "Unknown error format: " << value << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
 
   } else if (name == "--plugin") {
     if (plugin_prefix_.empty()) {
       cerr << "This compiler does not support plugins." << endl;
-      return false;
+      return PARSE_ARGUMENT_FAIL;
     }
 
-    string name;
+    string plugin_name;
     string path;
 
     string::size_type equals_pos = value.find_first_of('=');
@@ -1003,57 +1090,81 @@ bool CommandLineInterface::InterpretArgument(const string& name,
       // Use the basename of the file.
       string::size_type slash_pos = value.find_last_of('/');
       if (slash_pos == string::npos) {
-        name = value;
+        plugin_name = value;
       } else {
-        name = value.substr(slash_pos + 1);
+        plugin_name = value.substr(slash_pos + 1);
       }
       path = value;
     } else {
-      name = value.substr(0, equals_pos);
+      plugin_name = value.substr(0, equals_pos);
       path = value.substr(equals_pos + 1);
     }
 
-    plugins_[name] = path;
+    plugins_[plugin_name] = path;
 
+  } else if (name == "--print_free_field_numbers") {
+    if (mode_ != MODE_COMPILE) {
+      cerr << "Cannot use " << name << " and use --encode, --decode or print "
+           << "other info at the same time." << endl;
+      return PARSE_ARGUMENT_FAIL;
+    }
+    if (!output_directives_.empty() || !descriptor_set_name_.empty()) {
+      cerr << "Cannot use " << name
+           << " and generate code or descriptors at the same time." << endl;
+      return PARSE_ARGUMENT_FAIL;
+    }
+    mode_ = MODE_PRINT;
+    print_mode_ = PRINT_FREE_FIELDS;
   } else {
     // Some other flag.  Look it up in the generators list.
-    const GeneratorInfo* generator_info = FindOrNull(generators_, name);
+    const GeneratorInfo* generator_info =
+        FindOrNull(generators_by_flag_name_, name);
     if (generator_info == NULL &&
         (plugin_prefix_.empty() || !HasSuffixString(name, "_out"))) {
-      cerr << "Unknown flag: " << name << endl;
-      return false;
-    }
-
-    // It's an output flag.  Add it to the output directives.
-    if (mode_ != MODE_COMPILE) {
-      cerr << "Cannot use --encode or --decode and generate code at the "
-              "same time." << endl;
-      return false;
-    }
-
-    OutputDirective directive;
-    directive.name = name;
-    if (generator_info == NULL) {
-      directive.generator = NULL;
+      // Check if it's a generator option flag.
+      generator_info = FindOrNull(generators_by_option_name_, name);
+      if (generator_info == NULL) {
+        cerr << "Unknown flag: " << name << endl;
+        return PARSE_ARGUMENT_FAIL;
+      } else {
+        string* parameters = &generator_parameters_[generator_info->flag_name];
+        if (!parameters->empty()) {
+          parameters->append(",");
+        }
+        parameters->append(value);
+      }
     } else {
-      directive.generator = generator_info->generator;
-    }
+      // It's an output flag.  Add it to the output directives.
+      if (mode_ != MODE_COMPILE) {
+        cerr << "Cannot use --encode, --decode or print .proto info and "
+                "generate code at the same time." << endl;
+        return PARSE_ARGUMENT_FAIL;
+      }
 
-    // Split value at ':' to separate the generator parameter from the
-    // filename.  However, avoid doing this if the colon is part of a valid
-    // Windows-style absolute path.
-    string::size_type colon_pos = value.find_first_of(':');
-    if (colon_pos == string::npos || IsWindowsAbsolutePath(value)) {
-      directive.output_location = value;
-    } else {
-      directive.parameter = value.substr(0, colon_pos);
-      directive.output_location = value.substr(colon_pos + 1);
-    }
+      OutputDirective directive;
+      directive.name = name;
+      if (generator_info == NULL) {
+        directive.generator = NULL;
+      } else {
+        directive.generator = generator_info->generator;
+      }
 
-    output_directives_.push_back(directive);
+      // Split value at ':' to separate the generator parameter from the
+      // filename.  However, avoid doing this if the colon is part of a valid
+      // Windows-style absolute path.
+      string::size_type colon_pos = value.find_first_of(':');
+      if (colon_pos == string::npos || IsWindowsAbsolutePath(value)) {
+        directive.output_location = value;
+      } else {
+        directive.parameter = value.substr(0, colon_pos);
+        directive.output_location = value.substr(colon_pos + 1);
+      }
+
+      output_directives_.push_back(directive);
+    }
   }
 
-  return true;
+  return PARSE_ARGUMENT_DONE_AND_CONTINUE;
 }
 
 void CommandLineInterface::PrintHelpText() {
@@ -1086,9 +1197,20 @@ void CommandLineInterface::PrintHelpText() {
 "  --include_imports           When using --descriptor_set_out, also include\n"
 "                              all dependencies of the input files in the\n"
 "                              set, so that the set is self-contained.\n"
+"  --include_source_info       When using --descriptor_set_out, do not strip\n"
+"                              SourceCodeInfo from the FileDescriptorProto.\n"
+"                              This results in vastly larger descriptors that\n"
+"                              include information about the original\n"
+"                              location of each decl in the source file as\n"
+"                              well as surrounding comments.\n"
 "  --error_format=FORMAT       Set the format in which to print errors.\n"
 "                              FORMAT may be 'gcc' (the default) or 'msvs'\n"
-"                              (Microsoft Visual Studio format)." << endl;
+"                              (Microsoft Visual Studio format).\n"
+"  --print_free_field_numbers  Print the free field numbers of the messages\n"
+"                              defined in the given proto files. Groups share\n"
+"                              the same field number space with the parent \n"
+"                              message. Extension ranges are counted as \n"
+"                              occupied fields numbers."  << endl;
   if (!plugin_prefix_.empty()) {
     cerr <<
 "  --plugin=EXECUTABLE         Specifies a plugin executable to use.\n"
@@ -1101,8 +1223,8 @@ void CommandLineInterface::PrintHelpText() {
 "                              the executable's own name differs." << endl;
   }
 
-  for (GeneratorMap::iterator iter = generators_.begin();
-       iter != generators_.end(); ++iter) {
+  for (GeneratorMap::iterator iter = generators_by_flag_name_.begin();
+       iter != generators_by_flag_name_.end(); ++iter) {
     // FIXME(kenton):  If the text is long enough it will wrap, which is ugly,
     //   but fixing this nicely (e.g. splitting on spaces) is probably more
     //   trouble than it's worth.
@@ -1136,10 +1258,16 @@ bool CommandLineInterface::GenerateOutput(
     }
   } else {
     // Regular generator.
+    string parameters = output_directive.parameter;
+    if (!generator_parameters_[output_directive.name].empty()) {
+      if (!parameters.empty()) {
+        parameters.append(",");
+      }
+      parameters.append(generator_parameters_[output_directive.name]);
+    }
     for (int i = 0; i < parsed_files.size(); i++) {
-      if (!output_directive.generator->Generate(
-          parsed_files[i], output_directive.parameter,
-          generator_context, &error)) {
+      if (!output_directive.generator->Generate(parsed_files[i], parameters,
+                                                generator_context, &error)) {
         // Generator returned an error.
         cerr << output_directive.name << ": " << parsed_files[i]->name() << ": "
              << error << endl;
@@ -1168,8 +1296,9 @@ bool CommandLineInterface::GeneratePluginOutput(
   set<const FileDescriptor*> already_seen;
   for (int i = 0; i < parsed_files.size(); i++) {
     request.add_file_to_generate(parsed_files[i]->name());
-    GetTransitiveDependencies(parsed_files[i], &already_seen,
-                              request.mutable_proto_file());
+    GetTransitiveDependencies(parsed_files[i],
+                              true,  // Include source code info.
+                              &already_seen, request.mutable_proto_file());
   }
 
   // Invoke the plugin.
@@ -1299,12 +1428,17 @@ bool CommandLineInterface::WriteDescriptorSet(
   if (imports_in_descriptor_set_) {
     set<const FileDescriptor*> already_seen;
     for (int i = 0; i < parsed_files.size(); i++) {
-      GetTransitiveDependencies(
-          parsed_files[i], &already_seen, file_set.mutable_file());
+      GetTransitiveDependencies(parsed_files[i],
+                                source_info_in_descriptor_set_,
+                                &already_seen, file_set.mutable_file());
     }
   } else {
     for (int i = 0; i < parsed_files.size(); i++) {
-      parsed_files[i]->CopyTo(file_set.add_file());
+      FileDescriptorProto* file_proto = file_set.add_file();
+      parsed_files[i]->CopyTo(file_proto);
+      if (source_info_in_descriptor_set_) {
+        parsed_files[i]->CopySourceCodeInfoTo(file_proto);
+      }
     }
   }
 
@@ -1334,7 +1468,7 @@ bool CommandLineInterface::WriteDescriptorSet(
 }
 
 void CommandLineInterface::GetTransitiveDependencies(
-    const FileDescriptor* file,
+    const FileDescriptor* file, bool include_source_code_info,
     set<const FileDescriptor*>* already_seen,
     RepeatedPtrField<FileDescriptorProto>* output) {
   if (!already_seen->insert(file).second) {
@@ -1344,12 +1478,124 @@ void CommandLineInterface::GetTransitiveDependencies(
 
   // Add all dependencies.
   for (int i = 0; i < file->dependency_count(); i++) {
-    GetTransitiveDependencies(file->dependency(i), already_seen, output);
+    GetTransitiveDependencies(file->dependency(i), include_source_code_info,
+                              already_seen, output);
   }
 
   // Add this file.
-  file->CopyTo(output->Add());
+  FileDescriptorProto* new_descriptor = output->Add();
+  file->CopyTo(new_descriptor);
+  if (include_source_code_info) {
+    file->CopySourceCodeInfoTo(new_descriptor);
+  }
 }
+
+namespace {
+
+// Utility function for PrintFreeFieldNumbers.
+// Stores occupied ranges into the ranges parameter, and next level of sub
+// message types into the nested_messages parameter.  The FieldRange is left
+// inclusive, right exclusive. i.e. [a, b).
+//
+// Nested Messages:
+// Note that it only stores the nested message type, iff the nested type is
+// either a direct child of the given descriptor, or the nested type is a
+// decendent of the given descriptor and all the nodes between the
+// nested type and the given descriptor are group types. e.g.
+//
+// message Foo {
+//   message Bar {
+//     message NestedBar {}
+//   }
+//   group Baz = 1 {
+//     group NestedBazGroup = 2 {
+//       message Quz {
+//         message NestedQuz {}
+//       }
+//     }
+//     message NestedBaz {}
+//   }
+// }
+//
+// In this case, Bar, Quz and NestedBaz will be added into the nested types.
+// Since free field numbers of group types will not be printed, this makes sure
+// the nested message types in groups will not be dropped. The nested_messages
+// parameter will contain the direct children (when groups are ignored in the
+// tree) of the given descriptor for the caller to traverse. The declaration
+// order of the nested messages is also preserved.
+typedef pair<int, int> FieldRange;
+void GatherOccupiedFieldRanges(const Descriptor* descriptor,
+                               set<FieldRange>* ranges,
+                               vector<const Descriptor*>* nested_messages) {
+  set<const Descriptor*> groups;
+  for (int i = 0; i < descriptor->field_count(); ++i) {
+    const FieldDescriptor* fd = descriptor->field(i);
+    ranges->insert(FieldRange(fd->number(), fd->number() + 1));
+    if (fd->type() == FieldDescriptor::TYPE_GROUP) {
+      groups.insert(fd->message_type());
+    }
+  }
+  for (int i = 0; i < descriptor->extension_range_count(); ++i) {
+    ranges->insert(FieldRange(descriptor->extension_range(i)->start,
+                              descriptor->extension_range(i)->end));
+  }
+  // Handle the nested messages/groups in declaration order to make it
+  // post-order strict.
+  for (int i = 0; i < descriptor->nested_type_count(); ++i) {
+    const Descriptor* nested_desc = descriptor->nested_type(i);
+    if (groups.find(nested_desc) != groups.end()) {
+      GatherOccupiedFieldRanges(nested_desc, ranges, nested_messages);
+    } else {
+      nested_messages->push_back(nested_desc);
+    }
+  }
+}
+
+// Utility function for PrintFreeFieldNumbers.
+// Actually prints the formatted free field numbers for given message name and
+// occupied ranges.
+void FormatFreeFieldNumbers(const string& name,
+                            const set<FieldRange>& ranges) {
+  string output;
+  StringAppendF(&output, "%-35s free:", name.c_str());
+  int next_free_number = 1;
+  for (set<FieldRange>::iterator i = ranges.begin();
+       i != ranges.end(); ++i) {
+    // This happens when groups re-use parent field numbers, in which
+    // case we skip the FieldRange entirely.
+    if (next_free_number >= i->second) continue;
+
+    if (next_free_number < i->first) {
+      if (next_free_number + 1 == i->first) {
+        // Singleton
+        StringAppendF(&output, " %d", next_free_number);
+      } else {
+        // Range
+        StringAppendF(&output, " %d-%d", next_free_number, i->first - 1);
+      }
+    }
+    next_free_number = i->second;
+  }
+  if (next_free_number <= FieldDescriptor::kMaxNumber) {
+    StringAppendF(&output, " %d-INF", next_free_number);
+  }
+  cout << output << endl;
+}
+
+}  // namespace
+
+void CommandLineInterface::PrintFreeFieldNumbers(
+    const Descriptor* descriptor) {
+  set<FieldRange> ranges;
+  vector<const Descriptor*> nested_messages;
+  GatherOccupiedFieldRanges(descriptor, &ranges, &nested_messages);
+
+  for (int i = 0; i < nested_messages.size(); ++i) {
+    PrintFreeFieldNumbers(nested_messages[i]);
+  }
+  FormatFreeFieldNumbers(descriptor->full_name(), ranges);
+}
+
 
 
 }  // namespace compiler

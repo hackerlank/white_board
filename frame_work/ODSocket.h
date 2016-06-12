@@ -13,7 +13,7 @@
 #include <BaseDef.h>
 typedef int				socklen_t;
 
-
+class INetPacket;
 
 class ODSocket {
 
@@ -39,6 +39,7 @@ public:
 	int Select();
 	// Send socket
 	int Send(const char* buf, int len, int flags = 0);
+	int Send(INetPacket* packet);
 
 	// Recv socket
 	int Recv(char* buf, int len, int flags = 0);

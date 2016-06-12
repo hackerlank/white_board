@@ -19,6 +19,15 @@
     <Filter Include="main">
       <UniqueIdentifier>{74c993aa-e7a7-4971-9ce4-de3304c3b6eb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="proto_cpp">
+      <UniqueIdentifier>{7ce6f010-9469-42cd-8ca5-6b01e8f8dd8d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="proto_pb">
+      <UniqueIdentifier>{514be155-96c4-4d47-9198-b569f399c5ea}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="client">
+      <UniqueIdentifier>{84520c84-2934-42cf-b95b-4d0e00f3b393}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\frame_work\ODSocket.cpp">
@@ -44,6 +53,12 @@
     </ClCompile>
     <ClCompile Include="..\frame_work\ResPonseThread.cpp">
       <Filter>frame_work</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\Login.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\client\PacketHandle.cpp">
+      <Filter>client</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -79,6 +94,15 @@
     </ClInclude>
     <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h">
       <Filter>frame_work</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\Login.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\client\PacketHandler.h">
+      <Filter>client</Filter>
+    </ClInclude>
+    <ClInclude Include="..\client\OpCode.h">
+      <Filter>client</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
