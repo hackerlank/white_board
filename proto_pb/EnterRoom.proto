@@ -1,0 +1,6 @@
+
+message EnterRoom
+{
+	optional string room_key = 1;					//要求进的桌子的key
+
+}

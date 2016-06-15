@@ -1,0 +1,6 @@
+
+message RemoveShape
+{
+	optional uint32 shapeID= 1;					//delete shapeId
+
+}

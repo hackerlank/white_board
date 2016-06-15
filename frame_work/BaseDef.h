@@ -39,7 +39,7 @@ typedef unsigned __int16 uint16;
 typedef unsigned __int8 uint8;
 
 
-#if !_LITTLE_ENDIAN_
+#if _BIG_ENDIAN_
 #define _BITSWAP16(x) (((x << 8) & 0xff00) | ((x >> 8) & 0x00ff))
 
 #define _BITSWAP32(x) (((x << 24) & 0xff000000) | ((x <<  8) & 0x00ff0000) | \
@@ -62,3 +62,14 @@ enum ErrorCode
 	ECommonError,//失败
 	EErrorNoHandlerFun,//没有对应的处理函数
 };
+
+
+enum ShapeErrorCode{
+	Shape_Common_Error, //通常错误
+	Shape_No_In_Room,//不在桌子里
+	Shape_Packet_Wrong,//发送的协议内容有问题
+	Shape_Id_Not_Exist,//试图删除的图元不存在
+	Shape_Wrong_Operation,//错误操作
+};
+
+

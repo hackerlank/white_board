@@ -10,7 +10,6 @@ int SocketThread::start(){
 		pthread_attr_t tAttr;
 		errCode = pthread_attr_init(&tAttr);
 		
-		//CC_BREAK_IF(errCode!=0);
 		errCode = pthread_attr_setdetachstate(&tAttr, PTHREAD_CREATE_DETACHED);
 		if (errCode!=0) {
 			pthread_attr_destroy(&tAttr);
@@ -27,12 +26,14 @@ void* SocketThread::start_thread(void *arg)   {
 	ODSocket cdSocket;
 	cdSocket.Init();	
 	bool isok=cdSocket.Create(AF_INET,SOCK_STREAM,0);	
-	bool iscon=cdSocket.Connect("127.0.0.1",1234);
+	bool iscon = cdSocket.Connect("127.0.0.1", 1234);
+
 	if(iscon){
 		thred->state=0;
 		ResPonseThread::GetInstance()->start();// 启动响应参数
 	}else{
 		thred->state=1;
+		printf("conncet server faild ,error_code = %d", WSAGetLastError());
 	}	
 	thred->csocket=cdSocket;
 	return NULL;                                                                                    
@@ -67,4 +68,8 @@ SocketThread::~SocketThread(void)
 
 pthread_t SocketThread::getThreadId(){
 	return pid;
+}
+
+bool SocketThread::connectOk(){
+	return (state == 0);
 }

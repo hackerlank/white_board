@@ -7,6 +7,11 @@
 enum Opcode
 {
 	eLogin=100,  //登录
+	eEnterRoom,//进房间
+	eAddShape,//增加或修改图元
+	eRemoveShape,//删除图元
+	eErrorCode,//错误消息
+
 	
 };
 

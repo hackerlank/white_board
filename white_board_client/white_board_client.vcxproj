@@ -42,11 +42,16 @@
     <IncludePath>..\frame_work;..\third_part\include;..\proto_cpp;..\client;$(IncludePath)</IncludePath>
     <LibraryPath>..\third_part\lib;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>..\frame_work;..\third_part\include;..\proto_cpp;..\client;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <LibraryPath>..\third_part\lib;$(VC_LibraryPath_x86);$(WindowsSDK_LibraryPath_x86);</LibraryPath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>false</SDLCheck>
+      <PreprocessorDefinitions>%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -77,7 +82,11 @@
     <ClCompile Include="..\frame_work\ResPonseThread.cpp" />
     <ClCompile Include="..\frame_work\SocketThread.cpp" />
     <ClCompile Include="..\main\run.cpp" />
+    <ClCompile Include="..\proto_cpp\EnterRoom.pb.cc" />
+    <ClCompile Include="..\proto_cpp\ErrorResp.pb.cc" />
     <ClCompile Include="..\proto_cpp\Login.pb.cc" />
+    <ClCompile Include="..\proto_cpp\RemoveShape.pb.cc" />
+    <ClCompile Include="..\proto_cpp\WhiteBoardMessage.pb.cc" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\client\OpCode.h" />
@@ -93,7 +102,17 @@
     <ClInclude Include="..\frame_work\ResPonseThread.h" />
     <ClInclude Include="..\frame_work\SocketThread.h" />
     <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h" />
+    <ClInclude Include="..\proto_cpp\EnterRoom.pb.h" />
+    <ClInclude Include="..\proto_cpp\ErrorResp.pb.h" />
     <ClInclude Include="..\proto_cpp\Login.pb.h" />
+    <ClInclude Include="..\proto_cpp\RemoveShape.pb.h" />
+    <ClInclude Include="..\proto_cpp\WhiteBoardMessage.pb.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\proto_pb\EnterRoom.proto" />
+    <None Include="..\proto_pb\ErrorResp.proto" />
+    <None Include="..\proto_pb\RemoveShap.proto" />
+    <None Include="..\proto_pb\WhiteBoardMessage.proto" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

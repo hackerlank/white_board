@@ -1,11 +1,17 @@
-#include "PacketHandler.h"
 
+
+#include "Login.pb.h"
+#include "WhiteBoardMessage.pb.h"
+#include "RemoveShape.pb.h"
+#include "ErrorResp.pb.h"
+
+#include "PacketHandler.h"
 #include "BaseDef.h"
 #include "NetPacket.h"
 #include "OpCode.h"
 #include "SocketThread.h"
 
-#include "Login.pb.h"
+
 
 typedef int32(PacketHandler::*ReqHandler)(INetPacket&);
 static std::map<uint32, ReqHandler > req_handler_;
@@ -24,6 +30,10 @@ PacketHandler::~PacketHandler(){
 
 void PacketHandler::RegHandlerFuction(){
 	req_handler_[eLogin] = &PacketHandler::HandleLogin;
+	req_handler_[eAddShape] = &PacketHandler::HandleAddShape;
+	req_handler_[eRemoveShape] = &PacketHandler::HandleRemoveShape;
+	req_handler_[eErrorCode] = &PacketHandler::HandleErrorInfo;
+
 }
 
 int32 PacketHandler::HandleRequest(uint16 op_code, INetPacket &request){
@@ -83,6 +93,65 @@ int32 PacketHandler::HandleLogin(INetPacket &request){
 	NetPacket packet(eLogin);
 	packet << str_messgae;
 	SocketThread::GetInstance()->getSocket().Send(&packet);
+
+	return ECommonSuccess;
+}
+
+
+
+int32 PacketHandler::HandleAddShape(INetPacket &request){
+
+	std::string tmp;
+	request >> tmp;
+	WhiteBoardMessageList resp;
+	resp.ParseFromString(tmp);
+
+	for (int i = 0; i< resp.shapeobject_size(); i++)
+	{
+		WhiteBoardMessage  mess = resp.shapeobject(i);
+		printf("[PacketHandler::HandleAddShape], shape_id = %d    shape_type = %s    shape_data =%s   shape_property = %s \n",
+			mess.shapeid(), mess.shapetype().c_str(), mess.shapedata().c_str(), mess.shapeproperty().c_str());
+	}
+
+
+
+	return ECommonSuccess;
+
+}
+
+
+/*
+删除图元
+*/
+int32 PacketHandler::HandleRemoveShape(INetPacket& request){
+
+	std::string tmp;
+	request >> tmp;
+
+	RemoveShape resp;
+	resp.ParseFromString(tmp);
+
+	printf("[PacketHandler::HandleRemoveShape], shape_id = %d   \n",
+		resp.shapeid());
+
+	return ECommonSuccess;
+}
+
+
+/*
+错误处理函数
+*/
+int32 PacketHandler::HandleErrorInfo(INetPacket& request){
+
+	std::string tmp;
+	request >> tmp;
+
+	ErrorResp resp;
+	resp.ParseFromString(tmp);
+
+
+	printf("[PacketHandler::HandleRemoveShape], erro_code = %d   extra_info = %d   error_descption = %s \n",
+		resp.errorcode(),resp.extrainfo(),resp.errordescription().c_str());
 
 	return ECommonSuccess;
 }

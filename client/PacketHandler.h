@@ -19,6 +19,9 @@ public:
 protected:
 private:
 	int32 HandleLogin(INetPacket &request);
+	int32 HandleAddShape(INetPacket &request);
+	int32 HandleRemoveShape(INetPacket& request);
+	int32 HandleErrorInfo(INetPacket& request);
 };
 
 #endif // _PACKET_HANDLER_H_

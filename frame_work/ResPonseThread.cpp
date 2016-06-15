@@ -30,7 +30,6 @@ int ResPonseThread::start(void * param){
 	do{
 		pthread_attr_t attributes;
 		errCode = pthread_attr_init(&attributes);
-		//CC_BREAK_IF(errCode!=0);
 		//但是上面这个函数其他内容则主要为你创建的线程设定为分离式
 		errCode = pthread_attr_setdetachstate(&attributes, PTHREAD_CREATE_DETACHED);
 		if (errCode!=0) {

@@ -156,8 +156,11 @@ int ODSocket::Send(const char* buf, int len, int flags) {
 	while (count < len) {
 		const char* a= buf + count;
 		bytes = send(m_sock, buf + count, len - count, flags);
-		if (bytes == -1 || bytes == 0)
+		if (bytes == -1 || bytes == 0){
+			int err = WSAGetLastError();
 			return -1;
+		}
+
 		count += bytes;
 	}
 
@@ -171,10 +174,9 @@ int ODSocket::Send(INetPacket* packet){
 	size_t all_size = size + PACKET_HEADER_SIZE;
 	char* buff = new char[all_size];
 
-
 	NetPacketHeader Header;
 	Header.size = _BITSWAP16((uint16)all_size);
-	Header.cmd = _BITSWAP16(packet->GetOpcode());
+	Header.cmd =  _BITSWAP16(packet->GetOpcode());
 	memcpy(buff, &Header, PACKET_HEADER_SIZE);
 	memcpy(buff + PACKET_HEADER_SIZE, packet->GetReadBuffer(), size);
 	int count = Send(buff, all_size, 0);

@@ -1,0 +1,7 @@
+
+message ErrorResp
+{
+	optional int32	errorCode=1;				//错误码
+	optional uint32 ExtraInfo= 2;				//额外信息 (有些error需要处理,例如删除某些图元,此时ExtraInfo 为图元id)
+	optional string errorDescription=3;			//错误描述
+}

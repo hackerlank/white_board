@@ -1,0 +1,13 @@
+
+message WhiteBoardMessage
+{
+	optional uint32 shapeID = 1;					//shape对象的唯一标识符
+	optional string shapeType = 2;					//shape对象类型
+	optional bytes shapeData = 3;					//shape数据
+	optional bytes shapeProperty = 4;				//shape属性
+}
+
+message WhiteBoardMessageList
+{
+	repeated WhiteBoardMessage ShapeObject=1;   //广播列表
+}

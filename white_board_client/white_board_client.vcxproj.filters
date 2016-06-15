@@ -60,6 +60,18 @@
     <ClCompile Include="..\client\PacketHandle.cpp">
       <Filter>client</Filter>
     </ClCompile>
+    <ClCompile Include="..\proto_cpp\WhiteBoardMessage.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\EnterRoom.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\RemoveShape.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\ErrorResp.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\frame_work\ODSocket.h">
@@ -104,5 +116,31 @@
     <ClInclude Include="..\client\OpCode.h">
       <Filter>client</Filter>
     </ClInclude>
+    <ClInclude Include="..\proto_cpp\WhiteBoardMessage.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\EnterRoom.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\RemoveShape.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\ErrorResp.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\proto_pb\EnterRoom.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\WhiteBoardMessage.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\RemoveShap.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\ErrorResp.proto">
+      <Filter>proto_pb</Filter>
+    </None>
   </ItemGroup>
 </Project>
