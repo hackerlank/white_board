@@ -64,8 +64,8 @@ void ResPonseThread::OnRead(){
 			NetPacketHeader Header;
 			GetReadBuffer().Read(reinterpret_cast<uint8*>(&Header), PACKET_HEADER_SIZE);
 
-			Header.size = _BITSWAP16(Header.size);
-			Header.cmd = _BITSWAP16(Header.cmd);
+			Header.size = _BITSWAP32(Header.size);
+			Header.cmd = _BITSWAP32(Header.cmd);
 
 			assert(Header.size >= PACKET_HEADER_SIZE);
 			m_nRemaining = Header.size - PACKET_HEADER_SIZE;
@@ -76,18 +76,18 @@ void ResPonseThread::OnRead(){
 
 		if (m_nRemaining > 0)
 		{
-			if (GetReadBuffer().GetSize() < m_nRemaining)
+			if (GetReadBuffer().GetSize()< m_nRemaining)
 			{
 				return;
 			}
 		}
 
-		CircularBuffer *currentBuffer = &readBuffer;
+		//CircularBuffer *currentBuffer = &readBuffer;
 		//printf("read code = %d\n", m_Opcode);
-		NetPacket *Packet = PACKET_NEW NetPacket(static_cast<uint16>(m_Opcode));
+		NetPacket *Packet = PACKET_NEW NetPacket(static_cast<uint32>(m_Opcode));
 		if (m_nRemaining > 0)
 		{
-			currentBuffer->Read(reinterpret_cast<uint8*>(Packet->GetWriteBuffer(m_nRemaining)), m_nRemaining);
+			GetReadBuffer().Read(reinterpret_cast<uint8*>(Packet->GetWriteBuffer(m_nRemaining)), m_nRemaining);
 		}
 
 		m_nRemaining = m_Opcode = 0;

@@ -22,7 +22,7 @@
 #include <Windows.h>
 #include "pthread.h"
 
-#define CLIENTSOCKET_RECVBUF_SIZE 64000
+#define CLIENTSOCKET_RECVBUF_SIZE 6000000
 
 
 

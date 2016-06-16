@@ -1,6 +1,5 @@
 ﻿#pragma once
-//#include "PlatformMacros.h"
-//#include "GException.h"
+
 #include "BaseDef.h"
 
 #ifdef IPHONEOS
@@ -36,31 +35,8 @@ class IStreamBuffer
 public:
 	IStreamBuffer():_buff_size(0), _buff(NULL), _validate_size(0), _rpos(0), _wpos(0), _mode(IStreamBufferReadAndWrite)
 	{
-		//Clear(); 
-		//_Resize(sizeof(_buff_internal)); 
 	}
-	/*IStreamBuffer(const IStreamBuffer &r):_buff_size(0), _buff(NULL) 
-	{ 
-		Clear();
-		Resize(r._validate_size);
-		_rpos = r._rpos;
-		_wpos = r._wpos;
-		memcpy(_buff, r._buff, r._validate_size);
-	}*/
-	/*IStreamBuffer(const uint8* buf, size_t size): _buff_size(0), _buff(NULL)
-	{
-		//assert((0 <= size) && (size <= MAXSIZE));
-		Clear();
-		if (buf)
-		{
-			Resize(size);
-			memcpy(_buff, buf, size);
-		}
-		else
-		{
-			_Resize(size);
-		}
-	};*/
+
 	virtual ~IStreamBuffer()
 	{ 
 		_Clear();
@@ -117,8 +93,8 @@ public:
 	void SkipToEnd()			 { _rpos = _validate_size; };
 	size_t PosRead() const		 { return _rpos; }
 
-	void Append(const char *src, uint16 size) { Append((const uint8 *)src, size); }
-	void Append(const uint8 *src, uint16 size) { if (size > 0) _Write(src, size); }
+	void Append(const char *src, uint32 size) { Append((const uint8 *)src, size); }
+	void Append(const uint8 *src, uint32 size) { if (size > 0) _Write(src, size); }
 
 	size_t PosWrite() const		 { return _wpos; }
 	bool CanRead() const		 { return _validate_size - _rpos > 0; }
@@ -163,9 +139,9 @@ public:
 
 	IStreamBuffer& operator<<(const IStreamBuffer& value) 
 	{
-		uint16 size = value.Size();
-		uint16 size_little_endian = _BITSWAP16(size);
-		_Write<uint16>(size_little_endian);
+		uint32 size = value.Size();
+		uint32 size_little_endian = _BITSWAP32(size);
+		_Write<uint32>(size_little_endian);
 		if( size > 0 )
 		{
 			_Write(value._buff, size);
@@ -174,9 +150,9 @@ public:
 	};
 	IStreamBuffer& operator>>(IStreamBuffer& value)
 	{	
-		uint16 size_little_endian = 0;
-		_Read<uint16>(size_little_endian);
-		uint16 size = _BITSWAP16(size_little_endian);
+		uint32 size_little_endian = 0;
+		_Read<uint32>(size_little_endian);
+		uint32 size = _BITSWAP16(size_little_endian);
 		if( size > 0 )
 		{
 			value.Resize(size + value._wpos);
@@ -324,13 +300,13 @@ inline IStreamBuffer& IStreamBuffer::operator<<(const char *value)
 	value = utf8Value.c_str();
 #endif
 	size_t size = strlen(value);
-	if(size > 1024*10)
-	{
-		assert(0);
-		size = 1024*10;
-	}
-	uint16 size_little_endian = _BITSWAP16(size);
-	_Write<uint16>(size_little_endian);	
+	//if(size > 1024*10)
+	//{
+	//	assert(0);
+	//	size = 1024*10;
+	//}
+	uint32 size_little_endian = _BITSWAP32(size);
+	_Write<uint32>(size_little_endian);	
 	if ( size > 0)
 	{
 		_Write((const uint8*)value, size);
@@ -338,18 +314,6 @@ inline IStreamBuffer& IStreamBuffer::operator<<(const char *value)
 	return *this;
 }
 
-//inline IStreamBuffer& IStreamBuffer::operator>>(char *value)
-//{
-//	uint16 size_little_endian = 0;
-//	_Read<uint16>(size_little_endian);
-//	uint16 size = _BITSWAP16(size_little_endian);
-//	if ( size > 0 && size <= GetRemainSize())
-//	{
-//		_Read((uint8*)value, size);	
-//	}
-//	value[size] = '\0';
-//	return *this;
-//}
 
 //我们的windows的服务器上，汉字常量都是ansi，打包需要转换为utf8，网络上跑的是utf8
 inline IStreamBuffer& IStreamBuffer::operator<<(const std::string &value)
@@ -359,9 +323,9 @@ inline IStreamBuffer& IStreamBuffer::operator<<(const std::string &value)
 #else
     std::string utf8Value = value;
 #endif
-	uint16 size = utf8Value.size();
-	uint16 size_little_endian = _BITSWAP16(size); 
-	_Write<uint16>(size_little_endian);
+	uint32 size = utf8Value.size();
+	uint32 size_little_endian = _BITSWAP32(size); 
+	_Write<uint32>(size_little_endian);
 	if ( size > 0)
 	{
 		_Write((const uint8*)utf8Value.data(), size);
@@ -373,9 +337,9 @@ inline IStreamBuffer& IStreamBuffer::operator<<(const std::string &value)
 
 inline IStreamBuffer& IStreamBuffer::operator>>(std::string &value)
 {
-	uint16 size_little_endian = 0;
-	_Read<uint16>(size_little_endian);
-	uint16 size = _BITSWAP16(size_little_endian);
+	uint32 size_little_endian = 0;
+	_Read<uint32>(size_little_endian);
+	uint32 size = _BITSWAP32(size_little_endian);
 	value.clear();
 	if ( size > 0 && size <= GetRemainSize() )
 	{

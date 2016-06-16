@@ -175,8 +175,8 @@ int ODSocket::Send(INetPacket* packet){
 	char* buff = new char[all_size];
 
 	NetPacketHeader Header;
-	Header.size = _BITSWAP16((uint16)all_size);
-	Header.cmd =  _BITSWAP16(packet->GetOpcode());
+	Header.size = _BITSWAP32((uint32)all_size);
+	Header.cmd =  _BITSWAP32(packet->GetOpcode());
 	memcpy(buff, &Header, PACKET_HEADER_SIZE);
 	memcpy(buff + PACKET_HEADER_SIZE, packet->GetReadBuffer(), size);
 	int count = Send(buff, all_size, 0);

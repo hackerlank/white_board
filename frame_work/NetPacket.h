@@ -36,8 +36,8 @@ struct NetPacketHeaderChecker
 
 struct NetPacketHeader
 {
-	uint16 size;
-	uint16 cmd;
+	uint32 size;
+	uint32 cmd;
 };
 
 #define PACKET_HEADER_SIZE sizeof(NetPacketHeader)
@@ -59,7 +59,7 @@ void ClearNetPackPools();
 #if 0
 #define NEW_NETPACKET(size, opcode) (new NetPacket(opcode))
 #else
-inline INetPacket* NEW_NETPACKET(uint32 size, uint16 opcode);
+inline INetPacket* NEW_NETPACKET(uint32 size, uint32 opcode);
 #endif
 
 class INetPacket : public IStreamBuffer
@@ -69,7 +69,7 @@ public:
 	{
 		AtomicIncrement(&s_total_cnt);
 	};
-	INetPacket(uint16 opcode) :_opcode(opcode) 
+	INetPacket(uint32 opcode) :_opcode(opcode)
 	{
 		AtomicIncrement(&s_total_cnt);
 	};
@@ -80,11 +80,11 @@ public:
 	};
 
 public:
-	uint16 GetOpcode() const		
+	uint32 GetOpcode() const
 	{ 
 		return _opcode; 
 	};
-	void SetOpcode(uint16 opcode)
+	void SetOpcode(uint32 opcode)
 	{
 		_opcode = opcode;
 	};
@@ -102,7 +102,7 @@ public:
 public:
 	static volatile long s_total_cnt;
 private:
-	uint16 _opcode;
+	uint32 _opcode;
 	//uint16 _reserve;
 };
 
@@ -181,7 +181,7 @@ private:
 
 public:
 	CNetPacket() {};
-	CNetPacket(uint16 opcode) :INetPacket(opcode) {};
+	CNetPacket(uint32 opcode) :INetPacket(opcode) {};
 	virtual ~CNetPacket() { _Clear(); };
 
 public:
@@ -239,7 +239,7 @@ template <uint32 default_size>
 typedef CNetPacket<256> NetPacket;
 
 #ifndef NEW_NETPACKET
-inline INetPacket* NEW_NETPACKET(uint32 size, uint16 opcode)
+inline INetPacket* NEW_NETPACKET(uint32 size, uint32 opcode)
 {
 	if (size <= 1024)
 	{

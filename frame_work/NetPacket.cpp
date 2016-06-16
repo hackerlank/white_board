@@ -5,11 +5,11 @@ volatile long INetPacket::s_total_cnt = 0;
 
 void INetPacket::WritePacket(const INetPacket& r)
 {
-	uint16 opcode = r.GetOpcode();
+	uint32 opcode = r.GetOpcode();
 
 	NetPacketHeader Header;
-	Header.size = _BITSWAP16((uint16)( r.Size() + PACKET_HEADER_SIZE ) );
-	Header.cmd  = _BITSWAP16(opcode);
+	Header.size = _BITSWAP32((uint32)( r.Size() + PACKET_HEADER_SIZE ) );
+	Header.cmd = _BITSWAP32(opcode);
 
 	_Write((uint8*)&Header, PACKET_HEADER_SIZE);
 	size_t size = r.GetRemainSize();
@@ -20,9 +20,9 @@ INetPacket * INetPacket::ReadPacket(INetPacket* r)
 {
 	NetPacketHeader Header;
 	_Read( (uint8*)&Header,PACKET_HEADER_SIZE);
-	Header.size = _BITSWAP16(Header.size );
-	Header.cmd  = _BITSWAP16(Header.cmd  );
-	uint16 size = Header.size - PACKET_HEADER_SIZE;
+	Header.size = _BITSWAP32(Header.size );
+	Header.cmd = _BITSWAP32(Header.cmd);
+	uint32 size = Header.size - PACKET_HEADER_SIZE;
 	if (!r)
 	{
 		r = NEW_NETPACKET(size, Header.cmd);
