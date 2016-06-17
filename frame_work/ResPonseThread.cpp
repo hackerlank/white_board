@@ -109,18 +109,16 @@ void* ResPonseThread::threadFunc(void *arg){
 				int nRecv = csocket.Recv(pBuff, nLen, 0);
 				if (nRecv == SOCKET_ERROR)
 				{
-					//uint32 err = SocketOps::GetErrorNumber();
-					//if (err != ERROR_WOULDBLOCK)
-					//{
-					//	OnDisconnect(err);
-					//	return false;
-					//}
+					uint32 err = WSAGetLastError();
+					if (err == WSAEWOULDBLOCK || err == EINTR || err == EAGAIN)
+					{
+						continue;
+					}
 				}
 				else if (nRecv == 0)
 				{
-					////DLOG("shutdown...");
-					//OnDisconnect(0);
-					//return false;
+					printf("server dis conect");
+					return false;
 				}
 
 

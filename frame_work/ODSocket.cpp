@@ -75,6 +75,8 @@ bool ODSocket::Connect(const char* ip, unsigned short port) {
 	if (ret == SOCKET_ERROR) {
 		return false;
 	}
+	unsigned long BLOCK_TYPE = 1;
+	ioctlsocket(m_sock, FIONBIO, &BLOCK_TYPE);
 	return true;
 }
 
