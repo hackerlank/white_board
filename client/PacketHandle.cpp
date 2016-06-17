@@ -1,9 +1,10 @@
 
-
-#include "Login.pb.h"
 #include "WhiteBoardMessage.pb.h"
 #include "RemoveShape.pb.h"
 #include "ErrorResp.pb.h"
+#include "RoomListResp.pb.h"
+#include "PlayerListResp.pb.h"
+
 
 #include "PacketHandler.h"
 #include "BaseDef.h"
@@ -29,11 +30,11 @@ PacketHandler::~PacketHandler(){
 
 
 void PacketHandler::RegHandlerFuction(){
-	req_handler_[eLogin] = &PacketHandler::HandleLogin;
-	req_handler_[eAddShape] = &PacketHandler::HandleAddShape;
-	req_handler_[eRemoveShape] = &PacketHandler::HandleRemoveShape;
-	req_handler_[eErrorCode] = &PacketHandler::HandleErrorInfo;
-
+	req_handler_[ProtoBuff_Add_Sharp] = &PacketHandler::HandleAddShape;
+	req_handler_[ProtoBuff_Remove_Sharp] = &PacketHandler::HandleRemoveShape;
+	req_handler_[ProtoBuff_Error_Info] = &PacketHandler::HandleErrorInfo;
+	req_handler_[ProtoBuff_Sync_Room_List] = &PacketHandler::HandleRoomList;
+	req_handler_[ProtoBuff_Sync_Player_List] = &PacketHandler::HandlePlayerList;
 }
 
 int32 PacketHandler::HandleRequest(uint16 op_code, INetPacket &request){
@@ -50,54 +51,6 @@ int32 PacketHandler::HandleRequest(uint16 op_code, INetPacket &request){
 
 	return ECommonSuccess;
 }
-
-
-/*
-以下函数演示使用方法
-客户端每次收到 login包时,将name 自增再发给服务器
-*/
-int32 PacketHandler::HandleLogin(INetPacket &request){
-	std::string tmp;
-	request >> tmp;
-	Login get_packet;
-	get_packet.ParseFromString(tmp);
-	//结果输出
-	printf("[PacketHandler::HandleLogin], login_name = %s    paswdd = %s  \n",
-		get_packet.loginname().c_str(), get_packet.loginpwd().c_str());
-
-	//解析一下
-	std::string name = get_packet.loginname();
-	name = name.substr(name.find_last_of("_")+1, name.length() - name.find_last_of("_"));
-	int i =atoi(name.c_str());
-
-
-	if (i >= 100)
-	{
-		return ECommonSuccess;
-	}
-
-	//将数字自增 再发给服务器
-	i++;
-	char login_name[20] = { 0 };
-	char login_passwd[20] = { 0 };
-	sprintf(login_name, "name_%d", i);
-	sprintf(login_passwd, "passwd_%d", i);
-
-	Login login;
-	login.set_loginname(login_name);
-	login.set_loginpwd(login_passwd);
-
-	std::string str_messgae = "";
-	login.SerializeToString(&str_messgae);
-
-	NetPacket packet(eLogin);
-	packet << str_messgae;
-	SocketThread::GetInstance()->getSocket().Send(&packet);
-
-	return ECommonSuccess;
-}
-
-
 
 int32 PacketHandler::HandleAddShape(INetPacket &request){
 
@@ -150,8 +103,46 @@ int32 PacketHandler::HandleErrorInfo(INetPacket& request){
 	resp.ParseFromString(tmp);
 
 
-	printf("[PacketHandler::HandleRemoveShape], erro_code = %d   extra_info = %d   error_descption = %s \n",
+	printf("[PacketHandler::HandleErrorInfo], erro_code = %d   extra_info = %d   error_descption = %s \n",
 		resp.errorcode(),resp.extrainfo(),resp.errordescription().c_str());
 
 	return ECommonSuccess;
 }
+
+int32 PacketHandler::HandleRoomList(INetPacket& request){
+	std::string tmp;
+	request >> tmp;
+
+	RoomListResp list_room;
+	list_room.ParseFromString(tmp);
+
+	std::string room_list_str = " [PacketHandler::HandleRoomList]  room_list = [";
+	for (auto it = list_room.room_list().begin(); it != list_room.room_list().end();++it)
+	{
+		room_list_str += ",";
+		room_list_str += *it;
+
+	}
+	room_list_str += "]\n";
+	printf(room_list_str.c_str());
+	return ECommonSuccess;
+}
+int32 PacketHandler::HandlePlayerList(INetPacket& request){
+	std::string tmp;
+	request >> tmp;
+	PlayerListResp list_player;
+	list_player.ParseFromString(tmp);
+	std::string room_key = list_player.room_key();
+	std::string player_list_str = " [PacketHandler::HandlePlayerList]  room_key = ";
+	player_list_str += room_key;
+	player_list_str += " [";
+	for (auto it = list_player.player_list().begin(); it != list_player.player_list().end(); ++it)
+	{
+		player_list_str += ",";
+		player_list_str += *it;
+	}
+	player_list_str += "]\n";
+	printf(player_list_str.c_str());
+	return ECommonSuccess;
+}
+

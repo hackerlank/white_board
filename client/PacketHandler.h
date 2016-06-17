@@ -22,6 +22,8 @@ private:
 	int32 HandleAddShape(INetPacket &request);
 	int32 HandleRemoveShape(INetPacket& request);
 	int32 HandleErrorInfo(INetPacket& request);
+	int32 HandleRoomList(INetPacket& request);
+	int32 HandlePlayerList(INetPacket& request);
 };
 
 #endif // _PACKET_HANDLER_H_

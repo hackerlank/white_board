@@ -54,22 +54,25 @@
     <ClCompile Include="..\frame_work\ResPonseThread.cpp">
       <Filter>frame_work</Filter>
     </ClCompile>
-    <ClCompile Include="..\proto_cpp\Login.pb.cc">
-      <Filter>proto_cpp</Filter>
-    </ClCompile>
     <ClCompile Include="..\client\PacketHandle.cpp">
       <Filter>client</Filter>
     </ClCompile>
-    <ClCompile Include="..\proto_cpp\WhiteBoardMessage.pb.cc">
+    <ClCompile Include="..\proto_cpp\ErrorResp.pb.cc">
       <Filter>proto_cpp</Filter>
     </ClCompile>
-    <ClCompile Include="..\proto_cpp\EnterRoom.pb.cc">
+    <ClCompile Include="..\proto_cpp\PlayerListResp.pb.cc">
       <Filter>proto_cpp</Filter>
     </ClCompile>
     <ClCompile Include="..\proto_cpp\RemoveShape.pb.cc">
       <Filter>proto_cpp</Filter>
     </ClCompile>
-    <ClCompile Include="..\proto_cpp\ErrorResp.pb.cc">
+    <ClCompile Include="..\proto_cpp\RoomListResp.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\RoomOperate.pb.cc">
+      <Filter>proto_cpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\proto_cpp\WhiteBoardMessage.pb.cc">
       <Filter>proto_cpp</Filter>
     </ClCompile>
   </ItemGroup>
@@ -107,39 +110,48 @@
     <ClInclude Include="..\frame_work\ThreadSafeBlockQueue.h">
       <Filter>frame_work</Filter>
     </ClInclude>
-    <ClInclude Include="..\proto_cpp\Login.pb.h">
-      <Filter>proto_cpp</Filter>
-    </ClInclude>
     <ClInclude Include="..\client\PacketHandler.h">
       <Filter>client</Filter>
     </ClInclude>
     <ClInclude Include="..\client\OpCode.h">
       <Filter>client</Filter>
     </ClInclude>
-    <ClInclude Include="..\proto_cpp\WhiteBoardMessage.pb.h">
+    <ClInclude Include="..\proto_cpp\ErrorResp.pb.h">
       <Filter>proto_cpp</Filter>
     </ClInclude>
-    <ClInclude Include="..\proto_cpp\EnterRoom.pb.h">
+    <ClInclude Include="..\proto_cpp\PlayerListResp.pb.h">
       <Filter>proto_cpp</Filter>
     </ClInclude>
     <ClInclude Include="..\proto_cpp\RemoveShape.pb.h">
       <Filter>proto_cpp</Filter>
     </ClInclude>
-    <ClInclude Include="..\proto_cpp\ErrorResp.pb.h">
+    <ClInclude Include="..\proto_cpp\RoomListResp.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\RoomOperate.pb.h">
+      <Filter>proto_cpp</Filter>
+    </ClInclude>
+    <ClInclude Include="..\proto_cpp\WhiteBoardMessage.pb.h">
       <Filter>proto_cpp</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="..\proto_pb\EnterRoom.proto">
+    <None Include="..\proto_pb\ErrorResp.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\PlayerListResp.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\RemoveShape.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\RoomListResp.proto">
+      <Filter>proto_pb</Filter>
+    </None>
+    <None Include="..\proto_pb\RoomOperate.proto">
       <Filter>proto_pb</Filter>
     </None>
     <None Include="..\proto_pb\WhiteBoardMessage.proto">
-      <Filter>proto_pb</Filter>
-    </None>
-    <None Include="..\proto_pb\RemoveShap.proto">
-      <Filter>proto_pb</Filter>
-    </None>
-    <None Include="..\proto_pb\ErrorResp.proto">
       <Filter>proto_pb</Filter>
     </None>
   </ItemGroup>

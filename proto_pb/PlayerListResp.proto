@@ -1,0 +1,6 @@
+
+message PlayerListResp
+{
+	optional string room_key=1;							//请求的房间名
+	repeated string	player_list=2;				//玩家类表
+}

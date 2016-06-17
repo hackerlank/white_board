@@ -1,0 +1,18 @@
+
+/*
+oprate_type 
+1 请求房间列表
+2 创建房间
+3 离开房间
+4 销毁房间
+5 拷贝房间
+*/
+
+message RoomOperate
+{
+	optional int32	oprate_type = 1;				//操作类型
+	optional string use_name = 2;					//玩家名称
+	optional string room_key_origin = 3;			//房间名
+	optional string room_key_destination=4;			//目的房间名(只有在拷贝房间时候使用,其他场景忽略)
+
+}

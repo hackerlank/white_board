@@ -1,0 +1,5 @@
+
+message RoomListResp
+{
+	repeated string	room_list=1;				//房间列表
+}

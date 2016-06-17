@@ -1,10 +1,11 @@
 
 #include <sstream>
 
-#include "Login.pb.h"
+
 #include "WhiteBoardMessage.pb.h"
-#include "EnterRoom.pb.h"
+#include "RoomOperate.pb.h"
 #include "RemoveShape.pb.h"
+#include "RoomOperate.pb.h"
 
 #include "SocketThread.h"
 #include "OpCode.h"
@@ -20,84 +21,123 @@
 
 
 
-/*
-说明:  login  无用,仅作为测试
-以下例子是使用protobuf 通信的过程
-SendTest 向服务器发送数据
-main　中的while循环中处理收到服务器的请求,使用时,如　PacketHandler::HandleLogin　　自行添加相应函数
-*/
-void SendTestLogin(SocketThread* th){
-
-	char login_name[20] = { 0 };
-	char login_passwd[20] = { 0 };
-	sprintf(login_name, "name_%d", 1);
-	sprintf(login_passwd, "passwd_%d", 1);
-	
-	Login login;
-	login.set_loginname(login_name);
-	login.set_loginpwd(login_passwd);
-	std::string str_messgae = "";
-	login.SerializeToString(&str_messgae);
-
-	NetPacket packet(eLogin);
-	packet << str_messgae;
-	th->getSocket().Send(&packet);
 
 
-}
+
 
 /*
-说明:
-客户端发给服务器,lists.size() <= 1,否则视为非法刷(防止攻击)
-服务器分会出现 lists.size() 可能为多个 (例如,当玩家刚进入房间,同步的时候 )
-
-增加图元  shape_id 传0  ,服务器广播回来的 为赋值id
-修改图元  shape_id 为要修改的id 
+请求房间列表
 */
-void SendTestAddShape(SocketThread* th,int32 shape_id){
-
-	WhiteBoardMessageList lists;
-	WhiteBoardMessage * write_shape = lists.add_shapeobject();
-	write_shape->set_shapeid(shape_id);
-	write_shape->set_shapetype("aaa");
-	write_shape->set_shapedata("ff");
-	write_shape->set_shapeproperty("ddddd");
-
-	/*
-	真是场景中不应该有一次添加两个图元的情况,服务器将其视为非法操作
-	*/
-	//WhiteBoardMessage * write_shape1 = lists.add_shapeobject();
-	//write_shape1->set_shapeid(2);
-	//write_shape1->set_shapetype("111");
-	//write_shape1->set_shapedata("22");
-	//write_shape1->set_shapeproperty("33");
-
+void TestAskRoomList(SocketThread* th){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Ask_Room_List);
+	room_operate.set_use_name(USR_NAME);
 
 	std::string str_messgae = "";
-	lists.SerializeToString(&str_messgae);
-
-	NetPacket packet(eAddShape);
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
 	packet << str_messgae;
 	th->getSocket().Send(&packet);
-
-
 }
 
 
 /*
-说明:
-进桌,room_key 是桌子的唯一标识
+创建房间
 */
-void SendTestEnterRoom(SocketThread* th){
-	EnterRoom enter_req;
+void TestCreateRoom(SocketThread* th,std::string& room_name){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Create_Room);
+	room_operate.set_use_name(USR_NAME);
+	room_operate.set_room_key_origin(room_name);
 
-	enter_req.set_room_key("test");
 	std::string str_messgae = "";
-	enter_req.SerializeToString(&str_messgae);
-	NetPacket packet(eEnterRoom);
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
 	packet << str_messgae;
 	th->getSocket().Send(&packet);
 }
+
+/*
+进入房间
+*/
+void TestEnterRoom(SocketThread* th, std::string& room_name){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Enter_Room);
+	room_operate.set_use_name(USR_NAME);
+	room_operate.set_room_key_origin(room_name);
+
+	std::string str_messgae = "";
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+}
+
+/*
+离开房间
+*/
+void TestLeaveRoom(SocketThread* th ,std::string& room_name){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Leave_Room);
+	room_operate.set_use_name(room_name);
+	room_operate.set_room_key_origin(ROOM_NAME);
+
+	std::string str_messgae = "";
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+}
+
+/*
+删除房间
+*/
+void TestDeleteRoom(SocketThread* th, std::string& room_name){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Delete_Room);
+	room_operate.set_use_name(USR_NAME);
+	room_operate.set_room_key_origin(room_name);
+
+	std::string str_messgae = "";
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+}
+
+/*
+拷贝房间
+*/
+void TestCopyRoom(SocketThread* th){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Copy_Room);
+	room_operate.set_use_name(USR_NAME);
+	room_operate.set_room_key_origin(ROOM_NAME);
+	room_operate.set_room_key_destination(ROOM_COPY_TO);
+
+	std::string str_messgae = "";
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+}
+
+/*
+请求房间列表
+*/
+void TestAskPlayerList(SocketThread* th, std::string& room_name){
+	RoomOperate room_operate;
+	room_operate.set_oprate_type(RoomOperate_Ask_Player_List);
+	room_operate.set_use_name(USR_NAME);
+	room_operate.set_room_key_origin(room_name);
+
+	std::string str_messgae = "";
+	room_operate.SerializeToString(&str_messgae);
+	NetPacket packet(ProtoBuff_Room_Operate);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+}
+
 
 /*
 说明:
@@ -110,10 +150,37 @@ void SendRemoveShape(SocketThread* th, int32 shape_id){
 
 	std::string str_messgae = "";
 	remove_req.SerializeToString(&str_messgae);
-	NetPacket packet(eRemoveShape);
+	NetPacket packet(ProtoBuff_Remove_Sharp);
 	packet << str_messgae;
 	th->getSocket().Send(&packet);
 }
+
+/*
+说明:
+客户端发给服务器,lists.size() <= 1,否则视为非法刷(防止攻击)
+服务器分会出现 lists.size() 可能为多个 (例如,当玩家刚进入房间,同步的时候 )
+
+增加图元  shape_id 传0  ,服务器广播回来的 为赋值id
+修改图元  shape_id 为要修改的id
+*/
+void SendTestAddShape(SocketThread* th, int32 shape_id){
+
+	WhiteBoardMessageList lists;
+	WhiteBoardMessage * write_shape = lists.add_shapeobject();
+	write_shape->set_shapeid(shape_id);
+	write_shape->set_shapetype("aaa");
+	write_shape->set_shapedata("ff");
+	write_shape->set_shapeproperty("ddddd");
+
+	std::string str_messgae = "";
+	lists.SerializeToString(&str_messgae);
+
+	NetPacket packet(ProtoBuff_Add_Sharp);
+	packet << str_messgae;
+	th->getSocket().Send(&packet);
+
+}
+
 
 void main(){
 	SocketThread* th = SocketThread::GetInstance();
@@ -130,9 +197,20 @@ void main(){
 		}
 	}
 
-	SendTestEnterRoom(th);
-	//SendTestAddShape(th,0);
-	//SendRemoveShape(th,1);
+	TestCreateRoom(th, std::string(ROOM_NAME));
+	TestCreateRoom(th, std::string(ROOM_COPY_TO));
+	TestAskRoomList(th);
+	TestEnterRoom(th, std::string(ROOM_COPY_TO));
+	SendTestAddShape(th,0);
+	//TestEnterRoom(th, std::string(ROOM_COPY_TO));
+
+	//TestDeleteRoom(th, std::string(ROOM_COPY_TO));
+	//TestAskPlayerList(th, std::string(ROOM_COPY_TO));
+
+	//Sleep(1000);
+	//TestAskRoomList(th);
+	//TestEnterRoom(th, std::string(ROOM_NAME));
+	//TestAskPlayerList(th, std::string(ROOM_NAME));
 
 	PacketHandler packet_handler;
 	ResPonseThread* th_res = ResPonseThread::GetInstance();
